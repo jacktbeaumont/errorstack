@@ -1,10 +1,10 @@
 [package]
-name = "stacked_error"
+name = "errorstack"
 version = "0.0.1"
 edition = "2021"
 authors = ["jacktbeaumont"]
 description = "A derive-based typed error system with first-class error stack building."
 license = "Apache-2.0"
-repository = "https://github.com/jacktbeaumont/stacked_error"
-documentation = "https://docs.rs/stacked_error"
+repository = "https://github.com/jacktbeaumont/errorstack"
+documentation = "https://docs.rs/errorstack"
 readme = "README.md"

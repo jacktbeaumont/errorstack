@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "stacked_error"
+name = "errorstack"
 version = "0.0.1"

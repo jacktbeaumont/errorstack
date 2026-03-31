@@ -1,4 +1,4 @@
-# stacked_error
+# errorstack
 
 A derive-based typed error system with first-class stack building.
 
