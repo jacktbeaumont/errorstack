@@ -58,15 +58,15 @@ fn report_single() {
 
 #[test]
 fn report_chain_typed() {
-    let bottom = BottomError::new("root".into());
-    let middle = MiddleError::new("mid".into())(bottom);
-    let top = TopError::new("top".into())(middle);
+    let bottom = BottomError::new("connection refused".into());
+    let middle = MiddleError::new("service unavailable".into())(bottom);
+    let top = TopError::new("request failed".into())(middle);
     let report = Report::new(&top);
     let entries: Vec<_> = report.entries().collect();
     let messages: Vec<_> = entries.iter().map(|e| e.message().to_owned()).collect();
     assert_eq!(
         messages,
-        vec!["top: top", "middle: mid", "bottom: root"],
+        vec!["top: request failed", "middle: service unavailable", "bottom: connection refused"],
         "typed chain should produce entries in source order"
     );
     assert!(
@@ -77,13 +77,13 @@ fn report_chain_typed() {
 
 #[test]
 fn report_source_tail() {
-    let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "gone");
+    let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
     let bridge = PlainSourceError::new()(io_err);
     let report = Report::new(&bridge);
     let messages: Vec<_> = report.entries().map(|e| e.message().to_owned()).collect();
     assert_eq!(
         messages,
-        vec!["plain source", "gone"],
+        vec!["plain source", "file not found"],
         "should fall through to Error::source() for non-ErrorStack tail"
     );
     let tail = report.entries().last().expect("should have entries");
@@ -95,8 +95,8 @@ fn report_source_tail() {
 
 #[test]
 fn report_display_single_cause() {
-    let bottom = BottomError::new("root".into());
-    let middle = MiddleError::new("wrap".into())(bottom);
+    let bottom = BottomError::new("invalid key".into());
+    let middle = MiddleError::new("authentication failed".into())(bottom);
     let output = Report::new(&middle).to_string();
     assert!(
         output.contains("Caused by this error:"),
@@ -110,9 +110,9 @@ fn report_display_single_cause() {
 
 #[test]
 fn report_display_multiple_causes() {
-    let bottom = BottomError::new("root".into());
-    let middle = MiddleError::new("mid".into())(bottom);
-    let top = TopError::new("top".into())(middle);
+    let bottom = BottomError::new("connection refused".into());
+    let middle = MiddleError::new("service unavailable".into())(bottom);
+    let top = TopError::new("request failed".into())(middle);
     let output = Report::new(&top).to_string();
     assert!(
         output.contains("Caused by these errors (recent errors listed first):"),
@@ -126,7 +126,7 @@ fn report_display_multiple_causes() {
 
 #[test]
 fn report_debug_delegates() {
-    let err = BottomError::new("dbg".into());
+    let err = BottomError::new("unexpected state".into());
     let report = Report::new(&err);
     assert_eq!(
         format!("{report}"),
