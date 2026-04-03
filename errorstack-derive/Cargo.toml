@@ -2,7 +2,7 @@
 name = "errorstack-derive"
 description = "Derive macro for errorstack."
 documentation = "https://docs.rs/errorstack-derive"
-readme = "../README.md"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
