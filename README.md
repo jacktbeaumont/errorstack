@@ -3,7 +3,7 @@
 [![CI](https://github.com/jacktbeaumont/errorstack/actions/workflows/ci.yml/badge.svg)](https://github.com/jacktbeaumont/errorstack/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/errorstack.svg)](https://crates.io/crates/errorstack)
 [![docs.rs](https://img.shields.io/docsrs/errorstack)](https://docs.rs/errorstack)
-[![Rust 1.83.0+](https://img.shields.io/badge/rust-1.83.0%2B-orange.svg)](https://www.rust-lang.org)
+[![Rust 1.94.1+](https://img.shields.io/badge/rust-1.94.1%2B-orange.svg)](https://www.rust-lang.org)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 `errorstack` is a typed error system with error stacks and source-code location tracking for Rust.
