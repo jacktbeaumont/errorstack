@@ -11,3 +11,7 @@ repository.workspace = true
 
 [dependencies]
 errorstack-derive = { path = "../errorstack-derive" }
+
+[dev-dependencies]
+thiserror = "2"
+trybuild = "1"
