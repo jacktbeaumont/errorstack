@@ -84,13 +84,13 @@
 //! [`ErrorStack`] extends [`Error`](std::error::Error) with two methods:
 //!
 //! - [`location`](ErrorStack::location) returns the
-//! [`std::panic::Location`] where the error was constructed, or [`None`]
-//! if location tracking is not present for that error.
+//!   [`std::panic::Location`] where the error was constructed, or [`None`]
+//!   if location tracking is not present for that error.
 //!
 //! - [`stack_source`](ErrorStack::stack_source) returns the next
-//! [`ErrorStack`] implementor in the chain, or [`None`] if the error is
-//! the root cause or if the underlying source does not implement
-//! [`ErrorStack`].
+//!   [`ErrorStack`] implementor in the chain, or [`None`] if the error is
+//!   the root cause or if the underlying source does not implement
+//!   [`ErrorStack`].
 //!
 //! The trait is typically derived rather than implemented by hand. See the
 //! [derive macro documentation](derive@ErrorStack) for the full attribute
