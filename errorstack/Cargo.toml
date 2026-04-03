@@ -1,0 +1,13 @@
+[package]
+name = "errorstack"
+description = "A derive-based typed error system with first-class error stack building."
+documentation = "https://docs.rs/errorstack"
+readme = "../README.md"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+errorstack-derive = { path = "../errorstack-derive" }

@@ -1,1 +1,9 @@
-/target
+# Cargo generated files
+debug
+target
+
+# OS files
+.DS_Store
+
+# Temp files
+temp/**
