@@ -125,15 +125,72 @@ pub use errorstack_derive::ErrorStack;
 /// Typically derived via `#[derive(ErrorStack)]` rather than implemented by
 /// hand.
 ///
+/// # Examples
+///
+/// ```
+/// use errorstack::ErrorStack;
+///
+/// #[derive(thiserror::Error, ErrorStack, Debug)]
+/// #[error("leaf error")]
+/// struct LeafError {
+///     #[location]
+///     location: &'static std::panic::Location<'static>,
+/// }
+///
+/// let err = LeafError::new();
+/// assert!(err.location().is_some());
+/// ```
+///
 /// [`stack_source`]: ErrorStack::stack_source
 /// [`location`]: ErrorStack::location
 pub trait ErrorStack: std::error::Error + Send + Sync + 'static {
     /// Returns the source code location where this error was constructed,
     /// or [`None`] if location tracking is not available for this error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use errorstack::ErrorStack;
+    ///
+    /// #[derive(thiserror::Error, ErrorStack, Debug)]
+    /// #[error("something broke")]
+    /// struct MyError {
+    ///     #[location]
+    ///     location: &'static std::panic::Location<'static>,
+    /// }
+    ///
+    /// let err = MyError::new();
+    /// assert!(err.location().is_some());
+    /// ```
     fn location(&self) -> Option<&'static std::panic::Location<'static>>;
 
     /// Returns the next error in the chain, or [`None`] if this is the root
     /// cause.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use errorstack::ErrorStack;
+    ///
+    /// #[derive(thiserror::Error, ErrorStack, Debug)]
+    /// #[error("outer")]
+    /// struct Outer {
+    ///     #[stack_source]
+    ///     source: Inner,
+    ///     #[location]
+    ///     location: &'static std::panic::Location<'static>,
+    /// }
+    ///
+    /// #[derive(thiserror::Error, ErrorStack, Debug)]
+    /// #[error("inner")]
+    /// struct Inner {
+    ///     #[location]
+    ///     location: &'static std::panic::Location<'static>,
+    /// }
+    ///
+    /// let err = Outer::new()(Inner::new());
+    /// assert!(err.stack_source().is_some());
+    /// ```
     fn stack_source(&self) -> Option<&dyn ErrorStack> {
         None
     }
@@ -157,6 +214,26 @@ impl ErrorStack for Box<dyn ErrorStack + Send + Sync> {
 
 /// A single entry in an error report, pairing an error message with an
 /// optional source-code [`Location`].
+///
+/// Entries are produced by [`Report::new`] and accessed via
+/// [`Report::entries`] or [`Report::iter`].
+///
+/// # Examples
+///
+/// ```
+/// use errorstack::{ErrorStack, Report};
+///
+/// #[derive(thiserror::Error, ErrorStack, Debug)]
+/// #[error("something broke")]
+/// struct MyError {
+///     #[location]
+///     location: &'static std::panic::Location<'static>,
+/// }
+///
+/// let report = Report::new(&MyError::new());
+/// let messages: Vec<_> = report.iter().map(|e| e.message()).collect();
+/// assert_eq!(messages, ["something broke"]);
+/// ```
 ///
 /// [`Location`]: std::panic::Location
 #[derive(Debug, Clone)]
@@ -258,6 +335,23 @@ impl Report {
 
     /// Returns an iterator over the [`Entry`] values in this report, from the
     /// outermost error to the root cause.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use errorstack::{ErrorStack, Report};
+    ///
+    /// #[derive(thiserror::Error, ErrorStack, Debug)]
+    /// #[error("root cause")]
+    /// struct Root {
+    ///     #[location]
+    ///     location: &'static std::panic::Location<'static>,
+    /// }
+    ///
+    /// let report = Report::new(&Root::new());
+    /// let messages: Vec<_> = report.entries().map(|e| e.message()).collect();
+    /// assert_eq!(messages, ["root cause"]);
+    /// ```
     pub fn entries(&self) -> impl Iterator<Item = &Entry> {
         self.entries.iter()
     }
@@ -267,6 +361,12 @@ impl Report {
     /// This is equivalent to [`entries`](Report::entries).
     pub fn iter(&self) -> impl Iterator<Item = &Entry> {
         self.entries.iter()
+    }
+}
+
+impl<'a> From<&'a dyn ErrorStack> for Report {
+    fn from(err: &'a dyn ErrorStack) -> Self {
+        Self::new(err)
     }
 }
 
