@@ -38,3 +38,160 @@ impl ErrorStack for Box<dyn ErrorStack + Send + Sync> {
         (**self).stack_source()
     }
 }
+
+/// A single entry in an error report, pairing an error message with an
+/// optional source-code [`Location`].
+///
+/// [`Location`]: std::panic::Location
+pub struct Entry {
+    message: String,
+    location: Option<&'static std::panic::Location<'static>>,
+}
+
+impl Entry {
+    /// Returns the display message for this entry.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Returns the source-code location where this error was constructed, if
+    /// the error implements location tracking.
+    pub fn location(&self) -> Option<&'static std::panic::Location<'static>> {
+        self.location
+    }
+}
+
+/// A collected summary of an entire error chain, suitable for display or
+/// structured inspection.
+///
+/// `Report` walks the typed [`ErrorStack::stack_source`] chain to extract
+/// source-code locations, then falls back to [`Error::source`] to capture
+/// any remaining non-[`ErrorStack`] causes.
+///
+/// # Examples
+///
+/// ```
+/// # use std::error::Error;
+/// # use errorstack::{ErrorStack, Report};
+/// # use std::fmt;
+/// #
+/// # #[derive(Debug)]
+/// # struct RootError;
+/// # impl fmt::Display for RootError {
+/// #     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+/// #         write!(f, "root cause")
+/// #     }
+/// # }
+/// # impl Error for RootError {}
+/// # impl ErrorStack for RootError {
+/// #     fn location(&self) -> Option<&'static std::panic::Location<'static>> { None }
+/// # }
+/// #
+/// let err = RootError;
+/// let report = Report::new(&err);
+/// println!("{report}");
+/// ```
+///
+/// [`Error::source`]: std::error::Error::source
+pub struct Report {
+    entries: Vec<Entry>,
+}
+
+impl Report {
+    /// Walks the error chain rooted at `err`, collecting each error's message
+    /// and source-code location into an [`Entry`].
+    ///
+    /// At each step, [`ErrorStack::stack_source`] is used to traverse the
+    /// chain and extract source-code locations. When a link does not implement
+    /// [`ErrorStack`], the walk falls back to [`Error::source`].
+    ///
+    /// [`Error::source`]: std::error::Error::source
+    pub fn new(err: &dyn ErrorStack) -> Self {
+        let mut entries = Vec::new();
+
+        let mut current: &dyn ErrorStack = err;
+        entries.push(Entry {
+            message: current.to_string(),
+            location: current.location(),
+        });
+
+        let mut last_as_error: &dyn std::error::Error = current;
+        while let Some(next) = current.stack_source() {
+            entries.push(Entry {
+                message: next.to_string(),
+                location: next.location(),
+            });
+            last_as_error = next;
+            current = next;
+        }
+
+        // Fall through to untyped Error::source() chain.
+        let mut source = last_as_error.source();
+        while let Some(err) = source {
+            entries.push(Entry {
+                message: err.to_string(),
+                location: None,
+            });
+            source = err.source();
+        }
+
+        Self { entries }
+    }
+
+    /// Returns an iterator over the [`Entry`] values in this report, from the
+    /// outermost error to the root cause.
+    pub fn entries(&self) -> impl Iterator<Item = &Entry> {
+        self.entries.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Report {
+    type Item = &'a Entry;
+    type IntoIter = std::slice::Iter<'a, Entry>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter()
+    }
+}
+
+impl std::fmt::Display for Report {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Some(head) = self.entries.first() else {
+            return Ok(());
+        };
+
+        write!(f, "Error: {}", head.message())?;
+        if let Some(loc) = head.location() {
+            write!(f, "\n      at {loc}")?;
+        }
+
+        let causes = &self.entries[1..];
+        if causes.is_empty() {
+            return Ok(());
+        }
+
+        if causes.len() == 1 {
+            write!(f, "\n\nCaused by this error:")?;
+        } else {
+            write!(
+                f,
+                "\n\nCaused by these errors (recent errors listed first):"
+            )?;
+        }
+
+        for (i, entry) in causes.iter().enumerate() {
+            write!(f, "\n  {}: {}", i + 1, entry.message())?;
+            if let Some(loc) = entry.location() {
+                write!(f, "\n        at {loc}")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl std::fmt::Debug for Report {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(self, f)
+    }
+}
